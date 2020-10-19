@@ -1,0 +1,9 @@
+.temp/
+logs/
+raw_data/
+data/
+
+__pycache__
+
+*.log
+*.zip
