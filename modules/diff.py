@@ -77,19 +77,34 @@ def hystMask(img, high=0.8, low=0.2, sigma=3):
     return mask
 
 
-def sDerivate(series, mask, sd_area=50, sigma=4, mean_reate=1, interval=0):
+def sDerivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_space=0):
     """ Calculating derivative image series (difference between current and previous frames).
 
     Pixels greater than noise sd set equal to 1;
     Pixels less than -noise sd set equal to -1.
 
     """
-    gauss_series = [filters.gaussian(img, sigma=sigma) for img in series]
+    def seriesBinn(series, mean_series, binn, space):
+        mean_frame, series = np.mean(series[:binn,:,:], axis=0), series[binn+space:,:,:]
+        mean_series.append(mean_frame)
+        if len(series) > 0:
+            seriesBinn(series, mean_series, binn, space)
+        else:
+            return mean_series
+    
+    if mode == 'binn':
+        series_mean = []
+        seriesBinn(series, series_mean, binn=mean_win, space=mean_space)
+        logging.info('Mean series len={} (window={}, space={})'.format(len(series_mean), mean_win, mean_space))
+    else:
+        series_mean = series
+
+    gauss_series = [filters.gaussian(img, sigma=sigma) for img in series_mean]
     logging.info('Derivate sigma={}'.format(sigma))
     derivete_series = []
     i = 1
     while i < len(gauss_series):
-        frame_sd = np.std(gauss_series[i][:50, :50])
+        frame_sd = np.std(gauss_series[i][:sd_area, :sd_area])
 
         derivete_frame = gauss_series[i] - gauss_series[i-1]
         derivete_frame[derivete_frame > frame_sd] = 1
