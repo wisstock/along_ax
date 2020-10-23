@@ -36,7 +36,7 @@ plt.rcParams['figure.facecolor'] = '#272b30'
 plt.rcParams['image.cmap'] = 'inferno'
 
 
-img_series = tifffile.imread(os.path.join(sys.path[0], 'data/hpca_cfp.tif'))
+img_series = tifffile.imread(os.path.join(sys.path[0], 'demo_data/hpca_cfp.tif'))
 img_series = d.backRm(img_series)
 img_series = img_series[:,:,:550]
 
@@ -55,17 +55,17 @@ diff_series = d.sDerivate(img_series, mask,
 
 
 
-# num = 6
+num = 6
 
-# ax2 = plt.subplot(121)
-# img2 = ax2.imshow(img_series[num])
-# dvdr2 = make_axes_locatable(ax2)
-# cax2 = dvdr2.append_axes('right', size='2%', pad=0.05)
-# plt.colorbar(img2, cax=cax2)
+ax2 = plt.subplot(121)
+img2 = ax2.imshow(img_series[num])
+dvdr2 = make_axes_locatable(ax2)
+cax2 = dvdr2.append_axes('right', size='2%', pad=0.05)
+plt.colorbar(img2, cax=cax2)
 
 
-# ax1 = plt.subplot(122)
-# ax1.imshow(skel)
+ax1 = plt.subplot(122)
+ax1.imshow(mask)
 # ax1.contour(mask, size=0.5, colors='b')
 
 # ax3 = plt.subplot(122)
@@ -75,28 +75,22 @@ diff_series = d.sDerivate(img_series, mask,
 # dvdr3 = make_axes_locatable(ax3)
 # cax3 = dvdr3.append_axes('right', size='2%', pad=0.05)
 # plt.colorbar(img3, cax=cax3)
-
-# plt.show()
-
+plt.show()
 
 
-# save series
-a = 1
-for frame in diff_series:
-	plt.figure()
-	ax = plt.subplot()
-	img = ax.imshow(frame, cmap='bwr')
 
-	ax.text(20,20,a,fontsize=18)
-	# rect = patches.Rectangle((0,0),100,100,linewidth=1,edgecolor='w',facecolor='k')
-	# ax.add_patch(rect)
-	
+# # save series
+# a = 1
+# for frame in diff_series:
+# 	plt.figure()
+# 	ax = plt.subplot()
+# 	img = ax.imshow(frame, cmap='bwr')
+# 	ax.text(20,20,a,fontsize=18)
+	# ax.axis('off')
+	# plt.savefig('frame_{}.png'.format(a))
 
-	ax.axis('off')
-	plt.savefig('frame_{}.png'.format(a))
-
-	logging.info('Frame {} saved!'.format(a))
-	a += 1
+	# logging.info('Frame {} saved!'.format(a))
+	# a += 1
 
 
 # # animation
@@ -106,5 +100,4 @@ for frame in diff_series:
 # 	img.set_array(diff_series[i])
 # 	return img,
 # ani = anm.FuncAnimation(fig, ani, interval=10, frames=len(diff_series))
-
 # plt.show()
