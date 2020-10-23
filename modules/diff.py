@@ -95,7 +95,7 @@ def sDerivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_
     if mode == 'binn':
         series_mean = []
         seriesBinn(series, series_mean, binn=mean_win, space=mean_space)
-        logging.info(f"Mean series len={len(series_mean)} (window={mean_win}, space={mean_space})"
+        logging.info(f"Mean series len={len(series_mean)} (window={mean_win}, space={mean_space}")
     else:
         series_mean = series
 
@@ -103,7 +103,7 @@ def sDerivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_
     logging.info('Derivate sigma={}'.format(sigma))
     derivete_series = []
 
-    for i in range(1, len(gauss_series))
+    for i in range(1, len(gauss_series)):
         frame_sd = np.std(gauss_series[i][:sd_area, :sd_area])
 
         derivete_frame = gauss_series[i] - gauss_series[i-1]
