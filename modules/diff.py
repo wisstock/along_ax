@@ -23,8 +23,7 @@ from scipy import ndimage as ndi
 from scipy.ndimage import measurements as msr
 
 
-
-def backRm(img, edge_lim=20, dim=3):
+def back_rm(img, edge_lim=20, dim=3):
     """ Background extraction in TIFF series
 
     For confocal Z-stacks only!
@@ -55,7 +54,7 @@ def backRm(img, edge_lim=20, dim=3):
         return img
 
 
-def hystMask(img, high=0.8, low=0.2, sigma=3):
+def hyst_mask(img, high=0.8, low=0.2, sigma=3):
     """ Function for neuron region detection with hysteresis threshold algorithm.
 
     img - input image with higest intensity;
@@ -73,28 +72,28 @@ def hystMask(img, high=0.8, low=0.2, sigma=3):
                                                   high=np.max(img_gauss)*low)
         a, num = ndi.label(mask)
         low -= 0.01
-    logging.info(f"Lower limit for hystMask={round(low, 2)}")
+    logging.info(f"Lower limit for hyst_mask={round(low, 2)}")
     return mask
 
 
-def sDerivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_space=0):
+def s_derivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_space=0):
     """ Calculating derivative image series (difference between current and previous frames).
 
     Pixels greater than noise sd set equal to 1;
     Pixels less than -noise sd set equal to -1.
 
     """
-    def seriesBinn(series, mean_series, binn, space):
+    def series_binn(series, mean_series, binn, space):
         mean_frame, series = np.mean(series[:binn,:,:], axis=0), series[binn+space:,:,:]
         mean_series.append(mean_frame)
         if len(series) > 0:
-            seriesBinn(series, mean_series, binn, space)
+            series_binn(series, mean_series, binn, space)
         else:
             return mean_series
     
     if mode == 'binn':
         series_mean = []
-        seriesBinn(series, series_mean, binn=mean_win, space=mean_space)
+        series_binn(series, series_mean, binn=mean_win, space=mean_space)
         logging.info(f"Mean series len={len(series_mean)} (window={mean_win}, space={mean_space}")
     else:
         series_mean = series
@@ -128,7 +127,6 @@ def apply_hysteresis_threshold(image, low, high):
     thresholded = connected_to_high[labels_low]
 
     return thresholded
-
 
 
 if __name__=="__main__":

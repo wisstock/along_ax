@@ -37,11 +37,11 @@ plt.rcParams['image.cmap'] = 'inferno'
 
 
 img_series = tifffile.imread(os.path.join(sys.path[0], 'demo_data/hpca_cfp.tif'))
-img_series = d.backRm(img_series)
+img_series = d.back_rm(img_series)
 img_series = img_series[:,:,:550]
 
 
-mask = d.hystMask(img_series[0], low=0.2)
+mask = d.hyst_mask(img_series[0], low=0.2)
 # thresh = filters.threshold_otsu(img_series[0])
 # mask = img_series[0] > thresh
 
@@ -49,7 +49,7 @@ mask = d.hystMask(img_series[0], low=0.2)
 # dist_plot = dist * skel
 skel = skeletonize(mask, method='lee')
 
-diff_series = d.sDerivate(img_series, mask,
+diff_series = d.s_derivate(img_series, mask,
 	                      sigma=4, mean_win=2, mean_space=0, mode='binn')
 
 
