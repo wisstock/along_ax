@@ -46,7 +46,7 @@ def backRm(img, edge_lim=20, dim=3):
         edge_fragment = img[:edge_lim,:edge_lim]
         mean_back = np.mean(edge_fragment)
 
-        logging.info('Mean background, %s px region: %s' % (edge_lim, mean_back))
+        logging.info(f"Mean background, {edge_lim} px region: {mean_back}")
 
         img = np.copy(img)
         img = img - mean_back
@@ -73,7 +73,7 @@ def hystMask(img, high=0.8, low=0.2, sigma=3):
                                                   high=np.max(img_gauss)*low)
         a, num = ndi.label(mask)
         low -= 0.01
-    logging.info('Lower limit for hystMask={}'.format(round(low, 2)))
+    logging.info(f"Lower limit for hystMask={round(low, 2)}")
     return mask
 
 
@@ -95,15 +95,15 @@ def sDerivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_
     if mode == 'binn':
         series_mean = []
         seriesBinn(series, series_mean, binn=mean_win, space=mean_space)
-        logging.info('Mean series len={} (window={}, space={})'.format(len(series_mean), mean_win, mean_space))
+        logging.info(f"Mean series len={len(series_mean)} (window={mean_win}, space={mean_space})"
     else:
         series_mean = series
 
     gauss_series = [filters.gaussian(img, sigma=sigma) for img in series_mean]
     logging.info('Derivate sigma={}'.format(sigma))
     derivete_series = []
-    i = 1
-    while i < len(gauss_series):
+
+    for i in range(1, len(gauss_series))
         frame_sd = np.std(gauss_series[i][:sd_area, :sd_area])
 
         derivete_frame = gauss_series[i] - gauss_series[i-1]
@@ -111,8 +111,8 @@ def sDerivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_
         derivete_frame[derivete_frame < -frame_sd] = -1
 
         derivete_series.append(ma.masked_where(~mask, derivete_frame))
-        i += 1
-    logging.info('Derivate len={}'.format(len(derivete_series)))
+
+    logging.info(f"Derivate len={len(derivete_series)}")
     return derivete_series
 
 
