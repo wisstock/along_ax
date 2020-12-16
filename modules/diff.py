@@ -64,7 +64,7 @@ def de_bleach(img_series, base_num=0):
 
     """
     base_frame = img_series[base_num,:,:]
-    corr_series = [frame * np.true_divide(base_frame, frame, out=np.zeros_like(base_frame), where=frame!=0) for frame in img_series]
+    corr_series = [frame * (np.sum(base_frame) / np.sum(frame)) for frame in img_series]
     corr_err =  np.std([np.sum(frame) for frame in corr_series]) / np.mean([np.sum(frame) for frame in corr_series])  # mean of series frames sum / sd of series frame sum
     logging.info(f'Mean correction deviation={round(corr_err*100, 3)}%') 
     return corr_series

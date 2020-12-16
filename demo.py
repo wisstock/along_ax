@@ -39,33 +39,47 @@ res_path = os.path.join(sys.path[0], 'img')
 
 
 img_series = tifffile.imread(os.path.join(sys.path[0], 'demo_data/hpca_cfp.tif'))
-img_series = d.back_rm(img_series)
 img_series = img_series[:,:,:550]
+img_series = d.back_rm(img_series)
+img_series = d.de_bleach(img_series)
 
 mask = d.hyst_mask(np.mean(img_series, 0), low=0.2)
 
-mask = d.hyst_mask(img_series[0], low=0.2)
 # thresh = filters.threshold_otsu(img_series[0])
 # mask = img_series[0] > thresh
 
-corr_series = d.de_bleach(img_series)
 
 # skel, dist = medial_axis(mask, return_distance=True, )
 # dist_plot = dist * skel
 # skel = skeletonize(mask, method='lee')
 
-diff_series = d.s_derivate(img_series, mask,
-	                      sigma=4, mean_win=2, mean_space=0, mode='binn')
+diff_series = d.series_derivate(img_series, mask,
+	                            sigma=5, kernel_size=9,
+	                            sd_tolerance=5,
+                                left_w=2, space_w=0, right_w=2, output_path=res_path)
 
-# diff_series = d.series_derivate(img_series, mask,
-# 	                            sigma=5, kernel_size=9,
-# 	                            sd_tolerance=5,
-#                                 left_w=4, space_w=2, right_w=4, output_path=res_path)
+delta_series = d.series_point_delta(img_series, mask,
+	                                baseline_frames=3, delta_min=.2, delta_max=-.2,
+	                                sigma=5, kernel_size=9,
+	                                output_path=res_path)
 
-# delta_series = d.series_point_delta(img_series, mask,
-# 	                                baseline_frames=3, delta_min=.2, delta_max=-.2,
-# 	                                sigma=5, kernel_size=13,
-# 	                                output_path=res_path)
+# save series
+for i in range(len(img_series)):
+	frame = img_series[i]
+	plt.figure()
+	ax = plt.subplot()
+	img = ax.imshow(frame)
+	ax.imshow(mask, alpha=.10)
+	img.set_clim(vmin=np.min(img_series), vmax=np.max(img_series)) 
+	ax.text(10,10,i+1,fontsize=10)
+	ax.axis('off')
+	plt.savefig(f'{res_path}/corr/frame_{i+1}.png')
+	logging.info(f'Frame {i+1} saved!')
+	plt.close('all')
+
+
+
+
 
 # num = 6
 
@@ -90,20 +104,6 @@ diff_series = d.s_derivate(img_series, mask,
 # plt.show()
 
 
-
-# # save series
-# for i in range(len(img_series)):
-# 	frame = img_series[i]
-# 	plt.figure()
-# 	ax = plt.subplot()
-# 	img = ax.imshow(frame)
-# 	ax.imshow(mask, alpha=.15)
-# 	img.set_clim(vmin=np.min(img_series), vmax=np.max(img_series)) 
-# 	ax.text(10,10,i+1,fontsize=10)
-# 	ax.axis('off')
-# 	plt.savefig(f'{res_path}/raw/frame_{i+1}.png')
-# 	logging.info(f'Frame {i+1} saved!')
-# 	plt.close('all')
 
 
 # # animation
