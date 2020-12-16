@@ -2,6 +2,7 @@
 logs/
 raw_data/
 data/
+img/
 
 __pycache__
 
