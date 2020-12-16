@@ -27,8 +27,7 @@ from scipy import ndimage as ndi
 from scipy.ndimage import measurements as msr
 
 
-
-def backRm(img, edge_lim=20, dim=3):
+def back_rm(img, edge_lim=20, dim=3):
     """ Background extraction in TIFF series
 
     For confocal Z-stacks only!
@@ -89,7 +88,7 @@ def hyst_mask(img, high=0.8, low=0.2, sigma=3):
                                                   high=np.max(img_gauss)*low)
         a, num = ndi.label(mask)
         low -= 0.01
-    logging.info(f"Lower limit for hystMask={round(low, 2)}")
+    logging.info(f"Lower limit for hyst_mask={round(low, 2)}")
     return mask
 
 
@@ -138,8 +137,6 @@ def series_derivate(series, mask, sigma=4, kernel_size=3,  sd_area=50, sd_tolera
             logging.info(f'Derivate frame {i+1} saved!')
             plt.close('all')
         return np.asarray(der_series)
-    else:
-        return np.asarray(der_series)
 
 
 def series_point_delta(series, mask, mask_series=False, baseline_frames=3, delta_min=1, delta_max=-1, sigma=4, kernel_size=5, output_path=False):
@@ -181,7 +178,6 @@ def series_point_delta(series, mask, mask_series=False, baseline_frames=3, delta
         return np.asarray(delta_series)
     else:
         return np.asarray(delta_series)
-
 
 if __name__=="__main__":
     pass
