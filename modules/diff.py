@@ -14,6 +14,10 @@ import logging
 import numpy as np
 import numpy.ma as ma
 
+import matplotlib
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 from skimage.external import tifffile
 from skimage import filters
 from skimage import measure
@@ -55,7 +59,19 @@ def backRm(img, edge_lim=20, dim=3):
         return img
 
 
-def hystMask(img, high=0.8, low=0.2, sigma=3):
+def de_bleach(img_series, base_num=0):
+    """ Wide-field image series bleaching correction.
+    Base on first frame apply pixels values correction.
+
+    """
+    base_frame = img_series[base_num,:,:]
+    corr_series = [frame * np.true_divide(base_frame, frame, out=np.zeros_like(base_frame), where=frame!=0) for frame in img_series]
+    corr_err =  np.std([np.sum(frame) for frame in corr_series]) / np.mean([np.sum(frame) for frame in corr_series])  # mean of series frames sum / sd of series frame sum
+    logging.info(f'Mean correction deviation={round(corr_err*100, 3)}%') 
+    return corr_series
+
+
+def hyst_mask(img, high=0.8, low=0.2, sigma=3):
     """ Function for neuron region detection with hysteresis threshold algorithm.
 
     img - input image with higest intensity;
@@ -77,58 +93,94 @@ def hystMask(img, high=0.8, low=0.2, sigma=3):
     return mask
 
 
-def sDerivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean_space=0):
-    """ Calculating derivative image series (difference between current and previous frames).
-
-    Pixels greater than noise sd set equal to 1;
-    Pixels less than -noise sd set equal to -1.
+def series_derivate(series, mask, sigma=4, kernel_size=3,  sd_area=50, sd_tolerance=False, left_w=1, space_w=0, right_w=1, output_path=False):
+    """ Calculation of derivative image series (difference between two windows of interes).
 
     """
-    def seriesBinn(series, mean_series, binn, space):
-        mean_frame, series = np.mean(series[:binn,:,:], axis=0), series[binn+space:,:,:]
-        mean_series.append(mean_frame)
-        if len(series) > 0:
-            seriesBinn(series, mean_series, binn, space)
-        else:
-            return mean_series
-    
-    if mode == 'binn':
-        series_mean = []
-        seriesBinn(series, series_mean, binn=mean_win, space=mean_space)
-        logging.info(f"Mean series len={len(series_mean)} (window={mean_win}, space={mean_space}")
+    trun = lambda k, sd: (((k - 1)/2)-0.5)/sd  # calculate truncate value for gaussian fliter according to sigma value and kernel size
+    gauss_series = np.asarray([filters.gaussian(series[i], sigma=sigma, truncate=trun(kernel_size, sigma)) for i in range(np.shape(series)[0])])
+
+    logging.info(f'Derivate sigma={sigma}')
+
+    der_series = []
+    for i in range(np.shape(gauss_series)[0] - (left_w+space_w+right_w)):
+        der_frame = np.mean(gauss_series[i+left_w+space_w:i+left_w+space_w+right_w], axis=0) - np.mean(gauss_series[i:i+left_w], axis=0)
+        if sd_tolerance:
+            der_sd = np.std(der_frame[:sd_area, sd_area])
+            der_frame[der_frame > der_sd * sd_tolerance] = 1
+            der_frame[der_frame < -der_sd * sd_tolerance] = -1
+        der_series.append(ma.masked_where(~mask, der_frame))    
+    logging.info(f'Derivative series len={len(der_series)} (left WOI={left_w}, spacer={space_w}, right WOI={right_w})')
+
+    if output_path:
+        save_path = f'{output_path}/blue_red'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
+        norm = lambda x, min_val, max_val: (x-min_val)/(max_val-min_val)  # normilize derivate series values to 0-1 range
+        vnorm = np.vectorize(norm)
+
+        for i in range(len(der_series)):
+            frame = der_series[i]
+            # frame = vnorm(raw_frame, np.min(der_series), np.max(der_series))
+
+            plt.figure()
+            ax = plt.subplot()
+            img = ax.imshow(frame, cmap='bwr')
+            img.set_clim(vmin=np.min(der_series), vmax=np.max(der_series)) 
+            div = make_axes_locatable(ax)
+            cax = div.append_axes('right', size='3%', pad=0.1)
+            plt.colorbar(img, cax=cax)
+            ax.text(10,10,i+1,fontsize=10)
+            ax.axis('off')
+
+            plt.savefig(f'{save_path}/frame_{i+1}.png')
+            logging.info(f'Derivate frame {i+1} saved!')
+            plt.close('all')
+        return np.asarray(der_series)
     else:
-        series_mean = series
-
-    gauss_series = [filters.gaussian(img, sigma=sigma) for img in series_mean]
-    logging.info('Derivate sigma={}'.format(sigma))
-    derivete_series = []
-
-    for i in range(1, len(gauss_series)):
-        frame_sd = np.std(gauss_series[i][:sd_area, :sd_area])
-
-        derivete_frame = gauss_series[i] - gauss_series[i-1]
-        derivete_frame[derivete_frame > frame_sd] = 1
-        derivete_frame[derivete_frame < -frame_sd] = -1
-
-        derivete_series.append(ma.masked_where(~mask, derivete_frame))
-
-    logging.info(f"Derivate len={len(derivete_series)}")
-    return derivete_series
+        return np.asarray(der_series)
 
 
-def apply_hysteresis_threshold(image, low, high):
-    low = np.clip(low, a_min=None, a_max=high)  # ensure low always below high
-    mask_low = image > low
-    mask_high = image > high
-    # Connected components of mask_low
-    labels_low, num_labels = ndi.label(mask_low)
-    # Check which connected components contain pixels from mask_high
-    sums = ndi.sum(mask_high, labels_low, np.arange(num_labels + 1))
-    connected_to_high = sums > 0
-    thresholded = connected_to_high[labels_low]
+def series_point_delta(series, mask, mask_series=False, baseline_frames=3, delta_min=1, delta_max=-1, sigma=4, kernel_size=5, output_path=False):
+    trun = lambda k, sd: (((k - 1)/2)-0.5)/sd  # calculate truncate value for gaussian fliter according to sigma value and kernel size
+    img_series = np.asarray([filters.gaussian(series[i], sigma=sigma, truncate=trun(kernel_size, sigma)) for i in range(np.shape(series)[0])])
 
-    return thresholded
+    baseline_img = np.mean(img_series[:baseline_frames,:,:], axis=0)
 
+    delta = lambda f, f_0: (f - f_0)/f_0 if f_0 > 0 else f_0 
+    vdelta = np.vectorize(delta)
+
+    if mask_series:
+        delta_series = [ma.masked_where(~mask_series[i], vdelta(img_series[i], baseline_img)) for i in range(len(img_series))]
+    else:
+        delta_series = [ma.masked_where(~mask, vdelta(i, baseline_img)) for i in img_series]
+
+    if output_path:
+        save_path = f'{output_path}/delta_F'
+        if not os.path.exists(save_path):
+            os.makedirs(save_path)
+
+        for i in range(len(delta_series)):
+            frame = delta_series[i]
+
+            plt.figure()
+            ax = plt.subplot()
+            img = ax.imshow(frame, cmap='jet')
+            img.set_clim(vmin=delta_min, vmax=delta_max) 
+            div = make_axes_locatable(ax)
+            cax = div.append_axes('right', size='3%', pad=0.1)
+            plt.colorbar(img, cax=cax)
+            ax.text(10,10,i+1,fontsize=10)
+            ax.axis('off')
+
+            file_name = save_path.split('/')[-1]
+            plt.savefig(f'{save_path}/{file_name}_frame_{i+1}.png')
+            logging.info(f'Delta F frame {i+1} saved!')
+            plt.close('all')
+        return np.asarray(delta_series)
+    else:
+        return np.asarray(delta_series)
 
 
 if __name__=="__main__":
