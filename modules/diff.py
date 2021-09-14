@@ -99,7 +99,7 @@ def s_derivate(series, mask, sd_area=50, sigma=4, mode='whole', mean_win=1, mean
         series_mean = series
 
     gauss_series = [filters.gaussian(img, sigma=sigma) for img in series_mean]
-    logging.info('Derivate sigma={}'.format(sigma))
+    logging.info(f'Derivate sigma={sigma}')
     derivete_series = []
 
     for i in range(1, len(gauss_series)):

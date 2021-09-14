@@ -65,8 +65,8 @@ plt.colorbar(img2, cax=cax2)
 
 
 ax1 = plt.subplot(122)
-ax1.imshow(mask)
-# ax1.contour(mask, size=0.5, colors='b')
+ax1.contour(mask, size=0.5, colors='b')
+ax1.imshow(skel)
 
 # ax3 = plt.subplot(122)
 # img3 = ax3.imshow(diff_series[num],
